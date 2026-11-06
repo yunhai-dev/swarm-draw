@@ -28,6 +28,8 @@ jobs:
             exit 1
           fi
       - name: Check tag matches package version
+        # Tag pushes must match package.json; a manual run publishes current main.
+        if: startsWith(github.ref, 'refs/tags/v')
         run: |
           tag="${GITHUB_REF_NAME#v}"
           version="$(node -p "require('./package.json').version")"
