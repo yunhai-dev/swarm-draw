@@ -10,6 +10,21 @@ const workflowDir = join(root, '.github', 'workflows');
 
 const workflow = (name) => parse(readFileSync(join(workflowDir, name), 'utf8'));
 
+/** npm 11 prints an array, npm 12 prints an object keyed by package name. */
+const pickPackInfo = (parsed, name) => {
+  if (Array.isArray(parsed)) return parsed[0];
+  if (parsed && parsed[name]) return parsed[name];
+  const first = parsed && Object.values(parsed)[0];
+  assert.ok(first, 'npm pack --json returned nothing useful');
+  return first;
+};
+
+test('npm pack --json is normalised for both CLI shapes', () => {
+  const files = [{ path: 'src/index.js' }];
+  assert.deepEqual(pickPackInfo([{ name: 'swarm-draw', files }], 'swarm-draw').files, files);
+  assert.deepEqual(pickPackInfo({ 'swarm-draw': { name: 'swarm-draw', files } }, 'swarm-draw').files, files);
+});
+
 test('workflows parse and keep the steps the release flow depends on', () => {
   const files = readdirSync(workflowDir).filter((file) => file.endsWith('.yml'));
   assert.deepEqual(files.sort(), ['ci.yml', 'pages.yml', 'publish.yml']);
@@ -61,9 +76,7 @@ test('the published package exposes the vanilla, react and vue entry points', ()
 
   // the tarball must contain everything the exports point at
   const packed = execFileSync('npm', ['pack', '--dry-run', '--json'], { cwd: root, encoding: 'utf8' });
-  // npm differs here: older CLIs print an array, newer ones a single object.
-  const parsed = JSON.parse(packed);
-  const info = Array.isArray(parsed) ? parsed[0] : parsed;
+  const info = pickPackInfo(JSON.parse(packed), pkg.name);
   const shipped = info.files.map((file) => file.path);
   for (const file of ['src/index.js', 'src/react.js', 'src/vue.js', 'src/detect.js', 'LICENSE', 'README.md']) {
     assert.ok(shipped.includes(file), file + ' is missing from the tarball');
