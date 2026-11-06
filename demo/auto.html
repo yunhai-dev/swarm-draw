@@ -1,0 +1,250 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>swarm-draw · 自动识别 demo</title>
+<style>
+  :root {
+    --bg: #f2f3f5;
+    --card: #fff;
+    --line: #e8eaee;
+    --text: #1b1d21;
+    --muted: #8b909a;
+    --blue: #1a8cff;
+    --green: #2e9e5b;
+    --orange: #f5961a;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--text);
+    font: 13px/1.5 ui-sans-serif, system-ui, -apple-system, "PingFang SC", "Microsoft YaHei", sans-serif;
+    -webkit-font-smoothing: antialiased;
+  }
+  .app { display: grid; grid-template-columns: 216px minmax(0, 1fr); min-height: 100vh; }
+  .side { background: #fff; border-right: 1px solid var(--line); padding: 16px 10px; position: sticky; top: 0; height: 100vh; }
+  .brand { display: flex; align-items: center; gap: 8px; padding: 0 8px 16px; font-weight: 600; font-size: 14px; }
+  .brand b { width: 22px; height: 22px; border-radius: 6px; background: linear-gradient(135deg, #1a8cff, #5b6bff); display: grid; place-items: center; color: #fff; font-size: 11px; }
+  .nav h4 { margin: 14px 8px 6px; font-size: 11px; color: var(--muted); font-weight: 500; letter-spacing: .4px; }
+  .nav a { display: flex; justify-content: space-between; padding: 6px 8px; border-radius: 6px; color: #3d434d; text-decoration: none; }
+  .nav a.on { background: #eef5ff; color: var(--blue); font-weight: 600; }
+  .nav a span { color: #b6bac2; font-size: 11px; }
+  .main { padding: 0 24px 120px; }
+  .top { display: flex; align-items: center; gap: 16px; padding: 18px 0 14px; }
+  .crumb { font-size: 12px; color: var(--muted); }
+  .crumb b { color: var(--text); font-weight: 600; font-size: 15px; }
+  .search { margin-left: auto; width: 260px; height: 30px; border: 1px solid var(--line); border-radius: 8px; background: #fff; color: #b6bac2; display: flex; align-items: center; padding: 0 10px; }
+  .me { width: 26px; height: 26px; border-radius: 50%; background: #2f3640; color: #fff; display: grid; place-items: center; font-size: 11px; }
+  .grid { display: grid; grid-template-columns: minmax(0, 1fr) 268px; gap: 14px; align-items: start; }
+  .col, .rail { display: grid; gap: 14px; }
+  .card { background: var(--card); border: 1px solid var(--line); border-radius: 10px; padding: 14px 16px; }
+  .card h3 { margin: 0 0 12px; font-size: 13px; font-weight: 600; display: flex; align-items: center; gap: 8px; }
+  .card h3 em { font-style: normal; font-size: 11px; color: var(--muted); font-weight: 400; }
+  .notice { background: #fff8e9; border: 1px solid #f6e2b8; color: #8a6414; border-radius: 10px; padding: 10px 14px; display: flex; align-items: center; gap: 8px; }
+  .notice a { margin-left: auto; color: #b4791b; text-decoration: none; }
+  .kpis { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+  .kpi { border: 1px solid var(--line); border-radius: 8px; padding: 12px; }
+  .kpi small { color: var(--muted); display: block; }
+  .kpi strong { font-size: 24px; font-weight: 600; letter-spacing: -.5px; }
+  .kpi strong i { font-style: normal; font-size: 12px; color: var(--muted); font-weight: 400; margin-left: 4px; }
+  .kpi .tag { display: inline-block; margin-top: 8px; font-size: 11px; padding: 2px 6px; border-radius: 4px; background: #eef5ff; color: var(--blue); }
+  .kpi .tag.warn { background: #fff1e8; color: #c2620f; }
+  .kpi .tag.ok { background: #eaf7ef; color: var(--green); }
+  .metrics { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; }
+  .metric small { color: var(--muted); display: block; margin-bottom: 4px; }
+  .metric b { font-size: 18px; font-weight: 600; }
+  .chart { display: flex; align-items: flex-end; gap: 6px; height: 72px; margin-top: 14px; }
+  .chart i { flex: 1; border-radius: 3px 3px 0 0; background: #e6eefc; }
+  .chart i:nth-child(3n) { background: #cfe0fb; }
+  table { width: 100%; border-collapse: collapse; }
+  th { text-align: left; font-weight: 500; color: var(--muted); font-size: 12px; padding: 0 8px 8px; border-bottom: 1px solid var(--line); }
+  td { padding: 9px 8px; border-bottom: 1px solid #f3f4f6; }
+  .pill { font-size: 11px; padding: 2px 6px; border-radius: 4px; background: #eaf7ef; color: var(--green); }
+  .pill.warn { background: #fff1e8; color: #c2620f; }
+  .pill.err { background: #fdeceb; color: #c9392b; }
+  .traffic { background: linear-gradient(180deg, #fff7e6, #fff); border: 1px solid #f7e3bb; border-radius: 10px; padding: 14px; }
+  .traffic .row { display: flex; justify-content: space-between; align-items: baseline; }
+  .traffic .row small { color: var(--muted); }
+  .traffic .row b { font-size: 20px; font-weight: 600; }
+  .traffic .meter { display: flex; gap: 4px; margin: 10px 0; }
+  .traffic .meter i { flex: 1; height: 6px; border-radius: 3px; background: #f0e3c6; }
+  .traffic .meter i.on { background: #f5961a; }
+  .traffic .cta { display: block; text-align: center; background: #ff8a1f; color: #fff; border-radius: 6px; padding: 7px; font-size: 12px; text-decoration: none; }
+  .promo { border-radius: 10px; overflow: hidden; border: 1px solid #f0d6e0; background: #fff0f4; padding: 14px; }
+  .promo b { font-size: 18px; color: #d61f4f; }
+  .promo p { margin: 4px 0 10px; color: #a1425c; font-size: 12px; }
+  .promo span { display: inline-block; font-size: 11px; background: #fff; color: #d61f4f; border-radius: 4px; padding: 3px 8px; }
+  .help li { display: flex; justify-content: space-between; padding: 7px 0; border-bottom: 1px dashed #eef0f3; color: #4a505a; }
+  .help li:last-child { border: 0; }
+  .help a { color: var(--blue); text-decoration: none; font-size: 12px; }
+  .chat { display: grid; gap: 8px; }
+  .msg { display: grid; grid-template-columns: 22px 1fr; gap: 8px; align-items: start; }
+  .msg .who { width: 22px; height: 22px; border-radius: 50%; background: #eef1f5; display: grid; place-items: center; font-size: 10px; color: #6b7280; }
+  .msg p { margin: 0; background: #f6f7f9; border-radius: 8px; padding: 8px 10px; }
+  .msg.me p { background: #eef5ff; }
+  .rules { display: grid; gap: 8px; }
+  .rule { display: flex; align-items: center; gap: 10px; border: 1px solid var(--line); border-radius: 8px; padding: 10px 12px; }
+  .rule b { font-weight: 500; }
+  .rule span { color: var(--muted); font-size: 12px; }
+  .rule .sw { margin-left: auto; width: 28px; height: 16px; border-radius: 999px; background: #d8dbe0; position: relative; }
+  .rule .sw::after { content: ""; position: absolute; top: 2px; left: 2px; width: 12px; height: 12px; border-radius: 50%; background: #fff; }
+  .rule .sw.on { background: var(--blue); }
+  .rule .sw.on::after { left: 14px; }
+</style>
+</head>
+<body>
+<div class="app">
+  <aside class="side">
+    <div class="brand"><b>微</b> 客服运营台</div>
+    <nav class="nav">
+      <h4>首页</h4>
+      <a class="on" href="#">概览</a>
+      <a href="#">店铺装修 <span>3</span></a>
+      <h4>资源管理</h4>
+      <a href="#">素材中心</a>
+      <a href="#">消息中心</a>
+      <h4>服务</h4>
+      <a href="#">服务订购</a>
+      <a href="#">计费服务</a>
+      <h4>设置</h4>
+      <a href="#">账号管理</a>
+      <a href="#">全局设置</a>
+    </nav>
+  </aside>
+
+  <main class="main">
+    <header class="top">
+      <div class="crumb">首页 / <b>运营概览</b></div>
+      <div class="search">搜索功能与帮助</div>
+      <div class="me">超</div>
+    </header>
+
+    <div class="grid">
+      <div class="col">
+        <div class="notice">
+          <span>您有 2 项直播间信息未完善，快去完善</span>
+          <a href="#">展开 ›</a>
+        </div>
+
+        <section class="card">
+          <h3>待办事项 <em>今日需处理</em></h3>
+          <div class="kpis">
+            <div class="kpi">
+              <small>待付款订单</small>
+              <strong>0</strong><i>笔</i>
+              <span class="tag warn">较昨日 -3</span>
+            </div>
+            <div class="kpi">
+              <small>办理换货</small>
+              <strong>7</strong><i>单</i>
+              <span class="tag">优先处理</span>
+            </div>
+            <div class="kpi">
+              <small>待回复会话</small>
+              <strong>12</strong><i>条</i>
+              <span class="tag ok">AI 已接管</span>
+            </div>
+          </div>
+        </section>
+
+        <section class="card">
+          <h3>经营数据 <em>近 7 日</em></h3>
+          <div class="metrics">
+            <div class="metric"><small>今日销售额</small><b>￥0</b></div>
+            <div class="metric"><small>总收人数</small><b>490</b></div>
+            <div class="metric"><small>消息触达</small><b>18,204</b></div>
+            <div class="metric"><small>AI 应答率</small><b>96.4%</b></div>
+          </div>
+          <div class="chart">
+            <i style="height:38%"></i><i style="height:62%"></i><i style="height:45%"></i>
+            <i style="height:78%"></i><i style="height:52%"></i><i style="height:88%"></i>
+            <i style="height:66%"></i><i style="height:41%"></i><i style="height:72%"></i>
+            <i style="height:58%"></i><i style="height:84%"></i><i style="height:49%"></i>
+          </div>
+        </section>
+
+        <section class="card">
+          <h3>知识库列表 <em>共 4 个文档</em></h3>
+          <table>
+            <thead>
+              <tr><th>文档名称</th><th>解析状态</th><th>分块</th><th>更新时间</th></tr>
+            </thead>
+            <tbody>
+              <tr><td>产品介绍 V2.xlsx</td><td><span class="pill">已就绪</span></td><td>128</td><td>10-28 15:02</td></tr>
+              <tr><td>售后政策.md</td><td><span class="pill warn">解析中</span></td><td>—</td><td>10-29 09:14</td></tr>
+              <tr><td>话术库 2025.docx</td><td><span class="pill">已就绪</span></td><td>342</td><td>10-30 11:40</td></tr>
+              <tr><td>竞品对比.pdf</td><td><span class="pill err">解析失败</span></td><td>—</td><td>11-01 16:25</td></tr>
+            </tbody>
+          </table>
+        </section>
+
+        <section class="card">
+          <h3>聚合聊天 <em>AI 已接管 12 个会话</em></h3>
+          <div class="chat">
+            <div class="msg">
+              <div class="who">客</div>
+              <p>我买的这个能开发票吗？抬头是公司。</p>
+            </div>
+            <div class="msg me">
+              <div class="who">AI</div>
+              <p>可以的。您发送「公司名称 + 税号」，我这边 2 分钟内开出电子发票并发到会话里。</p>
+            </div>
+            <div class="msg">
+              <div class="who">客</div>
+              <p>杭州云杉科技有限公司，税号 91330100MA2xxxxx。</p>
+            </div>
+          </div>
+        </section>
+
+        <section class="card">
+          <h3>自动应答规则</h3>
+          <div class="rules">
+            <div class="rule"><b>发票咨询</b><span>命中 3 个关键词</span><div class="sw on"></div></div>
+            <div class="rule"><b>物流查询</b><span>工作日 9:00–21:00</span><div class="sw on"></div></div>
+            <div class="rule"><b>转人工</b><span>连续 2 次未命中</span><div class="sw"></div></div>
+          </div>
+        </section>
+      </div>
+
+      <div class="rail">
+        <div class="traffic">
+          <div class="row"><small>剩余流量</small><b>150099.22 GB</b></div>
+          <div class="meter">
+            <i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i>
+            <i class="on"></i><i class="on"></i><i></i><i></i>
+          </div>
+          <div class="row"><small>已消耗 76.0 GB</small><small>264 GB / 月</small></div>
+          <a class="cta" href="#">充值低至 0.13 元/GB/年，充值优惠多</a>
+        </div>
+
+        <div class="promo">
+          <b>直播 APP 低至￥13800 起</b>
+          <p>抢先体验直播专属的大促版小程序</p>
+          <span>立即查看</span>
+        </div>
+
+        <div class="card help">
+          <h3>使用帮助 <a href="#">查看更多</a></h3>
+          <ul>
+            <li>直播样式选择与介绍 <a href="#">查看</a></li>
+            <li>如何配置知识库 <a href="#">查看</a></li>
+            <li>会话分配规则说明 <a href="#">查看</a></li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </main>
+</div>
+
+<script type="module">
+  import { createSwarm } from '../src/index.js';
+
+  // 这个页面没有任何 data-swarm-* 标记：卡片和块都是自动识别出来的。
+  const swarm = createSwarm({ agents: 18, maxConcurrent: 6 });
+  swarm.start();
+  window.swarm = swarm;
+</script>
+</body>
+</html>
