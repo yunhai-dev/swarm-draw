@@ -238,27 +238,29 @@ const swarm = ref();
 
 ## 发布与部署
 
-三个 GitHub Actions 工作流，都在 `.github/workflows/`：
+**发布是本地做的**，CI 只管测试和部署 demo。
+
+```bash
+cd ~/Downloads/swarm-draw
+npm whoami                 # 必须是 yunhai-dev；没登录先 npm login（会要 2FA）
+npm version patch          # 0.1.1 -> 0.1.2，顺便提交 + 打 tag
+npm publish --access public  # 会先跑 prepublishOnly 里的测试
+git push --follow-tags     # 提交和 tag 一起推
+```
+
+- 有 2FA 的账号发布时会要一次性密码：`npm publish --otp=123456`，或按提示在浏览器确认。
+- 想先看会发什么：`npm publish --dry-run`（只列 tarball，不上传）。
+- 本地发布**没有 provenance 签名**（那个只有 GitHub Actions 的 OIDC 能签）；要签名就走下面手动触发的工作流。
+
+三个工作流：
 
 | 工作流 | 触发 | 做什么 |
 |---|---|---|
 | `ci.yml` | push main / PR | Node 22 + 24 上 `npm ci` → `npm test` → 构建 demo 站点并上传 artifact |
-| `publish.yml` | push `v*` tag 或手动 | 跑测试 → 校验元数据与 tag/版本一致 → `npm publish --access public` |
 | `pages.yml` | push main 或手动 | 跑测试 → `npm run build:site` → 部署 GitHub Pages |
+| `publish.yml` | **仅手动**（`gh workflow run publish.yml`） | 用 npm Trusted Publishing（OIDC，无需 token）发布当前版本，带 provenance |
 
-**发布走 npm 的 Trusted Publishing（OIDC），仓库里不存任何 token**：
-
-- npm 包页面 → Settings → Trusted Publisher 里填 `yunhai-dev/swarm-draw` + **workflow 文件名 `publish.yml`**（必须与 `.github/workflows/` 里的文件名完全一致）。
-- 工作流只需要 `permissions: id-token: write`，`npm publish` 会用 OIDC 换一次性凭据，并自动带上 provenance 签名。
-- trusted publishing 要求 npm CLI ≥ 11.5.1，所以工作流里固定 `node 24` + `npm install -g npm@latest`。
-- 首次配置后要**成功发布一次**才算验证；之后 npm 页面会显示 Provenance 标记。
-
-发版流程：
-
-```bash
-npm version patch            # 改版本 + 提交 + 打 tag
-git push --follow-tags       # 推送后 publish.yml 自动发布
-```
+`publish.yml` 走 OIDC 的要求（已配好）：npm 包的 Trusted Publisher 填 `yunhai-dev/swarm-draw` + workflow 文件名 `publish.yml`，工作流里 `permissions: id-token: write`、`node 24`、`npm install -g npm@latest`。
 
 Pages 需要在仓库 **Settings → Pages → Source** 选 **GitHub Actions**，之后每次推 main 都会更新
 `https://yunhai-dev.github.io/swarm-draw/`（首页是 demo 索引，另有 `/demo/index.html` 与 `/demo/auto.html`）。

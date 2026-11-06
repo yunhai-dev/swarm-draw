@@ -1,8 +1,7 @@
 name: Publish
 
+# 默认在本地 `npm publish`。这个工作流只在手动触发时才发布，推 tag 不会自动发。
 on:
-  push:
-    tags: ['v*']
   workflow_dispatch:
 
 permissions:

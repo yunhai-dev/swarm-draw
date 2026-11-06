@@ -37,6 +37,7 @@ test('workflows parse and keep the steps the release flow depends on', () => {
 
   const publish = workflow('publish.yml');
   assert.equal(publish.permissions['id-token'], 'write', 'provenance needs the id token');
+  assert.deepEqual(Object.keys(publish.on ?? {}), ['workflow_dispatch'], 'tag pushes must not publish');
   const publishSteps = publish.jobs.publish.steps;
   assert.ok(
     publishSteps.some((step) => step.run?.includes('npm publish')),
