@@ -23,10 +23,21 @@ test('workflows parse and keep the steps the release flow depends on', () => {
   const publish = workflow('publish.yml');
   assert.equal(publish.permissions['id-token'], 'write', 'provenance needs the id token');
   const publishSteps = publish.jobs.publish.steps;
-  assert.ok(publishSteps.some((step) => step.run?.includes('npm publish --provenance')));
   assert.ok(
-    publishSteps.some((step) => step.env?.NODE_AUTH_TOKEN),
-    'the publish step must carry NODE_AUTH_TOKEN',
+    publishSteps.some((step) => step.run?.includes('npm publish')),
+    'the workflow publishes',
+  );
+  assert.ok(
+    publishSteps.some((step) => step.run?.includes('npm install -g npm@latest')),
+    'trusted publishing needs npm >= 11.5.1',
+  );
+  assert.ok(
+    !publishSteps.some((step) => step.env?.NODE_AUTH_TOKEN),
+    'trusted publishing uses OIDC, not a stored token',
+  );
+  assert.ok(
+    publishSteps.some((step) => step.with?.node_version === 24 || step.with?.['node-version'] === 24),
+    'runs on a node with a trusted-publishing capable npm',
   );
 
   const pages = workflow('pages.yml');

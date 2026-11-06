@@ -1,6 +1,6 @@
 {
   "name": "swarm-draw",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Design-mode overlay: a flock of agent cursors draws a page in real time - drag-out frames, wireframe blocks, typed copy, then colour - with a live layer HUD.",
   "type": "module",
   "exports": {
