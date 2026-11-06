@@ -61,7 +61,9 @@ test('the published package exposes the vanilla, react and vue entry points', ()
 
   // the tarball must contain everything the exports point at
   const packed = execFileSync('npm', ['pack', '--dry-run', '--json'], { cwd: root, encoding: 'utf8' });
-  const [info] = JSON.parse(packed);
+  // npm differs here: older CLIs print an array, newer ones a single object.
+  const parsed = JSON.parse(packed);
+  const info = Array.isArray(parsed) ? parsed[0] : parsed;
   const shipped = info.files.map((file) => file.path);
   for (const file of ['src/index.js', 'src/react.js', 'src/vue.js', 'src/detect.js', 'LICENSE', 'README.md']) {
     assert.ok(shipped.includes(file), file + ' is missing from the tarball');
