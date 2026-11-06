@@ -1,5 +1,9 @@
 # swarm-draw
 
+[![npm](https://img.shields.io/npm/v/swarm-draw.svg)](https://www.npmjs.com/package/swarm-draw)
+[![CI](https://github.com/yunhai-dev/swarm-draw/actions/workflows/ci.yml/badge.svg)](https://github.com/yunhai-dev/swarm-draw/actions/workflows/ci.yml)
+[![demo](https://img.shields.io/badge/demo-live-1a8cff)](https://yunhai-dev.github.io/swarm-draw/)
+
 把「设计师现场画界面」这件事做成零依赖的 JS 库。
 
 不是让元素一个个淡入登场，而是复刻真实的设计动作和**真实的设计顺序**：空白画板 → 拖出画板框 → 切结构 → 全灰线框 → 写文案 → 最后上色。一群纸飞机光标在页面上分头工作，每个区域由一只光标连续画完；底部 HUD 实时显示 `N agents · x / y layers`。
@@ -52,6 +56,20 @@
 - 滚动让新的区域进入视口 → 18 只光标从**屏幕外**飞回来（下滚从底部、上滚从顶部），开下一幕。入场用 boids 式转向：寻位（带减速的 arrive）+ 互相分离 + 轻微游走，所以是一群鸟散开的曲线，不是并排直线。
 - 光标**机头始终朝向飞行方向**：按速度方向求航向，绕机头（transform-origin 在机头）平滑转向、角度归一到 ±180°，游走抖动不会让它乱转。
 - 等新内容时 `requestAnimationFrame` 是停的，只由 `scroll` / `resize` 唤醒，空转开销为零。
+
+## 安装
+
+```bash
+npm i swarm-draw
+```
+
+```js
+import { createSwarm } from 'swarm-draw';        // 原生
+import { SwarmDraw } from 'swarm-draw/react';    // React
+import { SwarmDraw } from 'swarm-draw/vue';      // Vue 3
+```
+
+零运行时依赖；`react` / `vue` 是可选 peer 依赖，用不到就不装。
 
 ## 用法
 
